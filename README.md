@@ -282,6 +282,17 @@ export CGO_ENABLED=1
 export DB_PATH=./app.db
 go run ./cmd
 ```
+## Screenshots
+
+| Register | Login |
+|---|---|
+| ![register](screenshots/register.png) | ![login](screenshots/login.png) |
+
+| 2FA Setup | 2FA Login |
+|---|---|
+| ![2fa setup](screenshots/2fa-setup.png) | ![2fa login](screenshots/2fa-login.png) |
+
+![whoami](screenshots/whoami.png)
 
 ## Project layout notes
 
