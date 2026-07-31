@@ -1,0 +1,14 @@
+# Go
+/cli-login-system
+*.test
+*.out
+
+# Local env
+.env
+
+# Data
+*.db
+data/
+
+# OS
+.DS_Store

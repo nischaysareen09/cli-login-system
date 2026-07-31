@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vault shell</title>
+<style>
+  :root{
+    --bg:#0B0E13;
+    --panel:#10151C;
+    --panel-2:#141B24;
+    --border:#1E2630;
+    --text:#E4E9F0;
+    --muted:#7C8798;
+    --cyan:#4FD1C5;
+    --amber:#F2B84B;
+    --green:#3ECF8E;
+    --red:#F2545B;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, "Liberation Mono", monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 20% -10%, rgba(79,209,197,0.07), transparent 40%),
+      radial-gradient(circle at 100% 10%, rgba(242,184,75,0.05), transparent 35%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--mono);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .term{
+    width:100%;
+    max-width:560px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 30px 80px -20px rgba(0,0,0,0.7);
+  }
+  .titlebar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 14px;
+    background:var(--panel-2);
+    border-bottom:1px solid var(--border);
+  }
+  .dot{width:11px;height:11px;border-radius:50%;}
+  .dot.r{background:#F2545B;} .dot.y{background:#F2B84B;} .dot.g{background:#3ECF8E;}
+  .titlebar .name{
+    margin-left:6px;
+    color:var(--muted);
+    font-size:12.5px;
+    letter-spacing:.02em;
+  }
+  .echo{
+    padding:14px 20px 0 20px;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .echo .prompt{color:var(--cyan);}
+  .body{padding:18px 20px 24px 20px;}
+  h1{
+    font-size:15px;
+    margin:2px 0 18px 0;
+    color:var(--text);
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .field{margin-bottom:14px;}
+  label{
+    display:block;
+    font-size:11.5px;
+    color:var(--muted);
+    margin-bottom:6px;
+    text-transform:lowercase;
+    letter-spacing:.03em;
+  }
+  input[type=text], input[type=password]{
+    width:100%;
+    background:#0D1218;
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:14px;
+    padding:10px 12px;
+    border-radius:6px;
+    outline:none;
+    transition:border-color .15s;
+  }
+  input:focus{border-color:var(--cyan);}
+  .row{display:flex; gap:10px;}
+  .row > *{flex:1;}
+  button{
+    font-family:var(--mono);
+    font-size:13.5px;
+    font-weight:600;
+    padding:10px 16px;
+    border-radius:6px;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:opacity .15s, transform .05s;
+  }
+  button:active{transform:translateY(1px);}
+  .btn-primary{background:var(--cyan); color:#04211E;}
+  .btn-primary:hover{opacity:.9;}
+  .btn-ghost{background:transparent; border-color:var(--border); color:var(--muted);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--muted);}
+  .btn-danger{background:transparent; border-color:var(--red); color:var(--red);}
+  .btn-danger:hover{background:rgba(242,84,91,0.1);}
+  .btn-full{width:100%;}
+  .msg{
+    margin-top:14px;
+    padding:9px 12px;
+    border-radius:6px;
+    font-size:13px;
+    display:none;
+    align-items:center;
+    gap:8px;
+  }
+  .msg.show{display:flex;}
+  .msg.ok{background:rgba(62,207,142,0.1); color:var(--green); border:1px solid rgba(62,207,142,0.25);}
+  .msg.err{background:rgba(242,84,91,0.1); color:var(--red); border:1px solid rgba(242,84,91,0.25);}
+  .msg.info{background:rgba(242,184,75,0.1); color:var(--amber); border:1px solid rgba(242,184,75,0.25);}
+  .link{
+    color:var(--muted);
+    font-size:12.5px;
+    text-align:center;
+    margin-top:16px;
+  }
+  .link a{color:var(--cyan); text-decoration:none; cursor:pointer;}
+  .link a:hover{text-decoration:underline;}
+  .box{
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    margin-bottom:18px;
+  }
+  .box-head{
+    background:var(--panel-2);
+    padding:8px 14px;
+    font-size:11.5px;
+    color:var(--amber);
+    border-bottom:1px solid var(--border);
+    letter-spacing:.03em;
+  }
+  .kv{display:flex; padding:9px 14px; font-size:13px; border-bottom:1px solid var(--border);}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--muted); width:150px; flex-shrink:0;}
+  .kv .v{color:var(--text); word-break:break-all;}
+  .tag{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:10px;
+    font-size:11px;
+    font-weight:600;
+  }
+  .tag.on{background:rgba(62,207,142,0.15); color:var(--green);}
+  .tag.off{background:rgba(124,135,152,0.15); color:var(--muted);}
+  .actions{display:flex; gap:10px; margin-top:6px;}
+  .qr-wrap{
+    display:flex;
+    justify-content:center;
+    padding:16px;
+    background:#fff;
+    border-radius:8px;
+    margin-bottom:14px;
+  }
+  .qr-wrap img{display:block; image-rendering:pixelated; width:200px; height:200px;}
+  .secret-fallback{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:16px;
+    text-align:center;
+  }
+  .secret-fallback code{
+    display:block;
+    margin-top:6px;
+    color:var(--amber);
+    font-size:13px;
+    letter-spacing:.05em;
+    word-break:break-all;
+  }
+  .hidden{display:none !important;}
+  .cursor{
+    display:inline-block;
+    width:7px; height:13px;
+    background:var(--cyan);
+    margin-left:4px;
+    vertical-align:middle;
+    animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:0;}}
+</style>
+</head>
+<body>
+
+<div class="term">
+  <div class="titlebar">
+    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="name">vault-shell — web</span>
+  </div>
+
+  <div class="echo" id="echoLine">$ <span class="prompt">vault</span> login<span class="cursor"></span></div>
+
+  <div class="body">
+
+    <!-- LOGIN VIEW -->
+    <div id="view-login">
+      <h1>sign in</h1>
+      <div class="field"><label>username</label><input type="text" id="login-username" autocomplete="username"></div>
+      <div class="field"><label>password</label><input type="password" id="login-password" autocomplete="current-password"></div>
+      <div class="field hidden" id="login-totp-field"><label>2fa code</label><input type="text" id="login-totp" autocomplete="one-time-code" placeholder="000000"></div>
+      <button class="btn-primary btn-full" onclick="doLogin()">▸ login</button>
+      <div class="msg" id="login-msg"></div>
+      <div class="link">no account? <a onclick="showView('register')">register</a></div>
+    </div>
+
+    <!-- REGISTER VIEW -->
+    <div id="view-register" class="hidden">
+      <h1>create account</h1>
+      <div class="field"><label>username</label><input type="text" id="reg-username" autocomplete="username"></div>
+      <div class="field"><label>password</label><input type="password" id="reg-password" autocomplete="new-password"></div>
+      <div class="field"><label>confirm password</label><input type="password" id="reg-password2" autocomplete="new-password"></div>
+      <button class="btn-primary btn-full" onclick="doRegister()">▸ register</button>
+      <div class="msg" id="register-msg"></div>
+      <div class="link">already have an account? <a onclick="showView('login')">sign in</a></div>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard" class="hidden">
+      <h1>account details</h1>
+      <div class="box">
+        <div class="box-head">whoami</div>
+        <div class="kv"><div class="k">username</div><div class="v" id="d-username"></div></div>
+        <div class="kv"><div class="k">registered on</div><div class="v" id="d-created"></div></div>
+        <div class="kv"><div class="k">2fa status</div><div class="v" id="d-2fa"></div></div>
+        <div class="kv"><div class="k">session expires</div><div class="v" id="d-expires"></div></div>
+        <div class="kv"><div class="k">last login</div><div class="v" id="d-lastlogin"></div></div>
+      </div>
+      <div class="actions">
+        <button class="btn-ghost" id="btn-enable2fa" onclick="startEnable2FA()">enable-2fa</button>
+        <button class="btn-ghost hidden" id="btn-disable2fa" onclick="doDisable2FA()">disable-2fa</button>
+        <button class="btn-danger" onclick="doLogout()">logout</button>
+      </div>
+      <div class="msg" id="dash-msg"></div>
+    </div>
+
+    <!-- ENABLE 2FA VIEW -->
+    <div id="view-2fa" class="hidden">
+      <h1>enable two-factor authentication</h1>
+      <div class="qr-wrap"><img id="qr-img" src="" alt="TOTP QR code"></div>
+      <div class="secret-fallback">
+        can't scan? enter this secret manually
+        <code id="secret-text"></code>
+      </div>
+      <div class="field"><label>6-digit code from your app</label><input type="text" id="confirm-code" placeholder="000000"></div>
+      <button class="btn-primary btn-full" onclick="confirmEnable2FA()">▸ confirm</button>
+      <button class="btn-ghost btn-full" style="margin-top:8px" onclick="cancelEnable2FA()">cancel</button>
+      <div class="msg" id="twofa-msg"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const echoLine = document.getElementById('echoLine');
+function setEcho(cmd){
+  echoLine.innerHTML = '$ <span class="prompt">vault</span> ' + cmd + '<span class="cursor"></span>';
+}
+
+function showView(name){
+  ['login','register','dashboard','2fa'].forEach(v=>{
+    document.getElementById('view-'+v).classList.toggle('hidden', v!==name);
+  });
+  const echoMap = {login:'login', register:'register', dashboard:'whoami', '2fa':'enable-2fa'};
+  setEcho(echoMap[name]);
+}
+
+function showMsg(id, kind, text){
+  const el = document.getElementById(id);
+  el.className = 'msg show ' + kind;
+  const glyph = kind === 'ok' ? '✓' : kind === 'err' ? '✗' : '›';
+  el.textContent = glyph + ' ' + text;
+}
+function hideMsg(id){
+  document.getElementById(id).className = 'msg';
+}
+
+async function api(path, body){
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body || {})
+  });
+  const data = await res.json().catch(()=>({}));
+  return {ok: res.ok, status: res.status, data};
+}
+
+// ---- Register ----
+async function doRegister(){
+  hideMsg('register-msg');
+  const username = document.getElementById('reg-username').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const password2 = document.getElementById('reg-password2').value;
+  if(password !== password2){
+    showMsg('register-msg','err','passwords do not match');
+    return;
+  }
+  const {ok, data} = await api('/api/register', {Username: username, Password: password});
+  if(ok){
+    showMsg('register-msg','ok','account created — you can now sign in');
+    setTimeout(()=>{ showView('login'); document.getElementById('login-username').value = username; }, 900);
+  } else {
+    showMsg('register-msg','err', data.error || 'registration failed');
+  }
+}
+
+// ---- Login ----
+async function doLogin(){
+  hideMsg('login-msg');
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const totp = document.getElementById('login-totp').value.trim();
+
+  const {ok, data} = await api('/api/login', {Username: username, Password: password, TotpCode: totp});
+
+  if(ok && data.status === 'totp_required'){
+    document.getElementById('login-totp-field').classList.remove('hidden');
+    document.getElementById('login-totp').focus();
+    showMsg('login-msg','info','enter your 2fa code to continue');
+    return;
+  }
+  if(!ok){
+    showMsg('login-msg','err', data.error || 'login failed');
+    return;
+  }
+  document.getElementById('login-totp-field').classList.add('hidden');
+  document.getElementById('login-totp').value = '';
+  renderDashboard(data);
+  showView('dashboard');
+}
+
+// ---- Dashboard ----
+function renderDashboard(d){
+  document.getElementById('d-username').textContent = d.username;
+  document.getElementById('d-created').textContent = fmtDate(d.created_at);
+  document.getElementById('d-expires').textContent = fmtDate(d.session_expires_at);
+  document.getElementById('d-lastlogin').textContent = d.last_login_at ? fmtDate(d.last_login_at) : 'never (first login)';
+  const tag = document.getElementById('d-2fa');
+  if(d.totp_enabled){
+    tag.innerHTML = '<span class="tag on">enabled</span>';
+    document.getElementById('btn-enable2fa').classList.add('hidden');
+    document.getElementById('btn-disable2fa').classList.remove('hidden');
+  } else {
+    tag.innerHTML = '<span class="tag off">disabled</span>';
+    document.getElementById('btn-enable2fa').classList.remove('hidden');
+    document.getElementById('btn-disable2fa').classList.add('hidden');
+  }
+}
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString();
+}
+
+async function refreshMe(){
+  const res = await fetch('/api/me');
+  if(!res.ok){ showView('login'); return; }
+  const data = await res.json();
+  renderDashboard(data);
+  showView('dashboard');
+}
+
+async function doLogout(){
+  await api('/api/logout');
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  showView('login');
+}
+
+// ---- 2FA enable ----
+async function startEnable2FA(){
+  hideMsg('dash-msg');
+  const res = await fetch('/api/2fa/enable/start', {method:'POST'});
+  const data = await res.json();
+  if(!res.ok){
+    showMsg('dash-msg','err', data.error || 'failed to start 2fa setup');
+    return;
+  }
+  document.getElementById('qr-img').src = data.qr_url + '?t=' + Date.now();
+  document.getElementById('secret-text').textContent = data.secret;
+  document.getElementById('confirm-code').value = '';
+  hideMsg('twofa-msg');
+  showView('2fa');
+}
+
+async function confirmEnable2FA(){
+  const code = document.getElementById('confirm-code').value.trim();
+  const {ok, data} = await api('/api/2fa/enable/confirm', {Code: code});
+  if(!ok){
+    showMsg('twofa-msg','err', data.error || 'invalid code');
+    return;
+  }
+  await refreshMe();
+  showMsg('dash-msg','ok','two-factor authentication is now enabled');
+}
+
+function cancelEnable2FA(){
+  showView('dashboard');
+}
+
+async function doDisable2FA(){
+  hideMsg('dash-msg');
+  const {ok, data} = await api('/api/2fa/disable');
+  if(!ok){
+    showMsg('dash-msg','err', data.error || 'failed to disable 2fa');
+    return;
+  }
+  await refreshMe();
+  showMsg('dash-msg','ok','two-factor authentication is now disabled');
+}
+
+// ---- Boot ----
+refreshMe();
+</script>
+</body>
+</html>
