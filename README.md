@@ -42,26 +42,38 @@ git clone <this-repo-url>
 cd cli-login-system
 
 docker-compose build
-docker-compose run --rm app
+docker-compose run --rm --service-ports app
 ```
 
-**Important:** use `docker-compose run --rm app`, not `docker-compose up`.
-This is an interactive terminal application, not a background service —
-`run` is what allocates a real terminal for it. `up` would start it
-detached with no way to type into it.
+**Important:** use `docker-compose run`, not `docker-compose up`. This is
+an interactive terminal application, not a background service — `run` is
+what allocates a real terminal for it. `up` would start it detached with
+no way to type into it.
+
+**Also important:** include `--service-ports`. By default, `docker-compose
+run` does **not** publish the ports listed in `docker-compose.yml` (unlike
+`up`, which always does) — without this flag, the CLI works fine but the
+[bonus web UI](#bonus-web-ui) will be unreachable and `http://localhost:8080`
+will just show a blank page / connection error, even though the container
+is running correctly.
 
 You'll land in the shell:
 
 ```
-=== CLI Login System ===
-Type 'help' to see available commands.
-login>
+╔════════════════════════════════════════════════╗
+║             V A U L T   S H E L L              ║
+║   secure account access · terminal edition     ║
+╚════════════════════════════════════════════════╝
+
+  Type help to see available commands.
+
+vault ▸
 ```
 
 Type `help` at any point to see the commands available in your current
 state (logged out vs. logged in). Your data persists in a Docker volume
-(`dbdata`) across restarts — running `docker-compose run --rm app` again
-will remember users you already registered.
+(`dbdata`) across restarts — running the same command again will remember
+users you already registered.
 
 To wipe all data and start fresh:
 
@@ -136,7 +148,7 @@ sessions. It's not a separate product; it's the same backend logic
 (`internal/auth`, `internal/session`) exposed a second way, through
 `internal/httpapi`.
 
-With the container running (`docker-compose run --rm app`), open:
+With the container running (`docker-compose run --rm --service-ports app`), open:
 
 ```
 http://localhost:8080
